@@ -1,0 +1,359 @@
+[1;33mdiff --git a/app/assets/stylesheets/depot.css b/app/assets/stylesheets/depot.css[m
+[1;33mindex 4555b25..5a20bc4 100644[m
+[1;33m--- a/app/assets/stylesheets/depot.css[m
+[1;33m+++ b/app/assets/stylesheets/depot.css[m
+[1;35m@@ -167,3 +167,15 @@[m [mtext-align: right;[m
+ font-weight: bold;[m
+ border-top: 1px solid #595;[m
+ }[m
+[1;32m+[m[1;32m/* Styles for the cart in the sidebar */[m
+[1;32m+[m[1;32m#cart, #cart table {[m
+[1;32m+[m[1;32mfont-size: smaller;[m
+[1;32m+[m[1;32mcolor:[m
+[1;32m+[m[1;32mwhite;[m
+[1;32m+[m[1;32m}[m
+[1;32m+[m[1;32m#cart table {[m
+[1;32m+[m[1;32mborder-top:[m
+[1;32m+[m[1;32m1px dotted #595;[m
+[1;32m+[m[1;32mborder-bottom: 1px dotted #595;[m
+[1;32m+[m[1;32mmargin-bottom: 10px;[m
+[1;32m+[m[1;32m}[m
+[1;33mdiff --git a/app/controllers/line_items_controller.rb b/app/controllers/line_items_controller.rb[m
+[1;33mindex 97d4734..95e24ad 100644[m
+[1;33m--- a/app/controllers/line_items_controller.rb[m
+[1;33m+++ b/app/controllers/line_items_controller.rb[m
+[1;35m@@ -47,7 +47,8 @@[m [mclass LineItemsController < ApplicationController[m
+ [m
+     respond_to do |format|[m
+       if @line_item.save[m
+[1;31m-        format.html { redirect_to(@line_item.cart)}[m
+[1;32m+[m[1;32m        format.html { redirect_to(store_url)}[m
+[1;32m+[m[1;32m        format.js[m
+         format.json { render json: @line_item, status: :created, location: @line_item }[m
+       else[m
+         format.html { render action: "new" }[m
+[1;33mdiff --git a/app/controllers/store_controller.rb b/app/controllers/store_controller.rb[m
+[1;33mindex 97f7b50..6e8fdd5 100644[m
+[1;33m--- a/app/controllers/store_controller.rb[m
+[1;33m+++ b/app/controllers/store_controller.rb[m
+[1;35m@@ -1,5 +1,6 @@[m
+ class StoreController < ApplicationController[m
+   def index[m
+   	@products = Product.all[m
+[1;32m+[m[41m  [m	[1;32m@cart = current_cart[m
+   end[m
+ end[m
+[1;33mdiff --git a/app/views/carts/show.html.erb b/app/views/carts/show.html.erb[m
+[1;33mindex 9f35ea3..c70d77a 100644[m
+[1;33m--- a/app/views/carts/show.html.erb[m
+[1;33m+++ b/app/views/carts/show.html.erb[m
+[1;35m@@ -1,12 +1,8 @@[m
+ <div name="cart_title">Your Cart</div>[m
+ <table>[m
+[1;31m-	<% for item in @cart.line_items %>[m
+[1;31m-		<tr>[m
+[1;31m-			<td><%= item.quantity %> &times;</td>[m
+[1;31m-			<td><%= item.product.title %></td>[m
+[1;31m-			<td class="item_price"> <%=  number_to_currency(item.total_price) %></td>[m
+[1;31m-		</tr>[m
+[1;31m-	<% end %>[m
+[1;32m+[m
+[1;32m+[m	[1;32m<%= render(@cart.line_items) %>[m
+[1;32m+[m
+ 	<tr class="total_line">[m
+ 		<td colspan="2">Total:</td>[m
+ 		<td class="total_cell"><%= number_to_currency(@cart.total_price) %></td>[m
+[1;35m@@ -14,5 +10,5 @@[m
+ </table>[m
+ [m
+ <%= button_to 'Empty cart', @cart, :method => :delete, :confirm => 'Are you sure?' %><br />[m
+[1;31m-<%= link_to 'Back', store_index_path %>[m
+[41m+[m
+ [m
+[1;33mdiff --git a/app/views/layouts/application.html.erb b/app/views/layouts/application.html.erb[m
+[1;33mindex d31142a..9c28ce6 100644[m
+[1;33m--- a/app/views/layouts/application.html.erb[m
+[1;33m+++ b/app/views/layouts/application.html.erb[m
+[1;35m@@ -15,6 +15,10 @@[m
+ 	</div>[m
+ 	<div id="columns" >[m
+ 		<div id="side" >[m
+[1;32m+[m			[1;32m<div id="cart">[m
+[1;32m+[m				[1;32m<%= render @cart %>[m
+[1;32m+[m			[1;32m</div>[m
+[1;32m+[m
+ 			<a href="http://www...." >Home</a><br />[m
+ 			<a href="http://www..../faq" >Questions</a><br />[m
+ 			<a href="http://www..../news" >News</a><br />[m
+[1;33mdiff --git a/app/views/store/index.html.erb b/app/views/store/index.html.erb[m
+[1;33mindex c4cd347..60a73d5 100644[m
+[1;33m--- a/app/views/store/index.html.erb[m
+[1;33m+++ b/app/views/store/index.html.erb[m
+[1;35m@@ -10,7 +10,7 @@[m
+     <%= sanitize(product.description) %>[m
+     <div class="price_line" >[m
+       <span class="price" ><%= number_to_currency(product.price) %></span>[m
+[1;31m-      <%= button_to 'Add to Cart', line_items_path(product_id: product) %>[m
+[1;32m+[m[1;32m      <%= button_to 'Add to Cart', line_items_path(product_id: product), remote: true %>[m
+     </div>[m
+   </div>[m
+ <% end %>[m
+[1;33mdiff --git a/config/application.rb b/config/application.rb[m
+[1;33mindex 0ce3a62..6299ea7 100644[m
+[1;33m--- a/config/application.rb[m
+[1;33m+++ b/config/application.rb[m
+[1;35m@@ -55,6 +55,7 @@[m [mmodule Depot[m
+ [m
+     # Enable the asset pipeline[m
+     config.assets.enabled = true[m
+[1;32m+[m[1;32m    #config.assets.initialize_on_precompile = true[m
+ [m
+     # Version of your assets, change this if you want to expire all your assets[m
+     config.assets.version = '1.0'[m
+[1;33mdiff --git a/public/index.html b/public/index.html[m
+[1;33mdeleted file mode 100644[m
+[1;33mindex a1d5099..0000000[m
+[1;33m--- a/public/index.html[m
+[1;33m+++ /dev/null[m
+[1;35m@@ -1,241 +0,0 @@[m
+[1;31m-<!DOCTYPE html>[m
+[1;31m-<html>[m
+[1;31m-  <head>[m
+[1;31m-    <title>Ruby on Rails: Welcome aboard</title>[m
+[1;31m-    <style type="text/css" media="screen">[m
+[1;31m-      body {[m
+[1;31m-        margin: 0;[m
+[1;31m-        margin-bottom: 25px;[m
+[1;31m-        padding: 0;[m
+[1;31m-        background-color: #f0f0f0;[m
+[1;31m-        font-family: "Lucida Grande", "Bitstream Vera Sans", "Verdana";[m
+[1;31m-        font-size: 13px;[m
+[1;31m-        color: #333;[m
+[1;31m-      }[m
+[1;31m-[m
+[1;31m-      h1 {[m
+[1;31m-        font-size: 28px;[m
+[1;31m-        color: #000;[m
+[1;31m-      }[m
+[1;31m-[m
+[1;31m-      a  {color: #03c}[m
+[1;31m-      a:hover {[m
+[1;31m-        background-color: #03c;[m
+[1;31m-        color: white;[m
+[1;31m-        text-decoration: none;[m
+[1;31m-      }[m
+[1;31m-[m
+[1;31m-[m
+[1;31m-      #page {[m
+[1;31m-        background-color: #f0f0f0;[m
+[1;31m-        width: 750px;[m
+[1;31m-        margin: 0;[m
+[1;31m-        margin-left: auto;[m
+[1;31m-        margin-right: auto;[m
+[1;31m-      }[m
+[1;31m-[m
+[1;31m-      #content {[m
+[1;31m-        float: left;[m
+[1;31m-        background-color: white;[m
+[1;31m-        border: 3px solid #aaa;[m
+[1;31m-        border-top: none;[m
+[1;31m-        padding: 25px;[m
+[1;31m-        width: 500px;[m
+[1;31m-      }[m
+[1;31m-[m
+[1;31m-      #sidebar {[m
+[1;31m-        float: right;[m
+[1;31m-        width: 175px;[m
+[1;31m-      }[m
+[1;31m-[m
+[1;31m-      #footer {[m
+[1;31m-        clear: both;[m
+[1;31m-      }[m
+[1;31m-[m
+[1;31m-      #header, #about, #getting-started {[m
+[1;31m-        padding-left: 75px;[m
+[1;31m-        padding-right: 30px;[m
+[1;31m-      }[m
+[1;31m-[m
+[1;31m-[m
+[1;31m-      #header {[m
+[1;31m-        background-image: url("assets/rails.png");[m
+[1;31m-        background-repeat: no-repeat;[m
+[1;31m-        background-position: top left;[m
+[1;31m-        height: 64px;[m
+[1;31m-      }[m
+[1;31m-      #header h1, #header h2 {margin: 0}[m
+[1;31m-      #header h2 {[m
+[1;31m-        color: #888;[m
+[1;31m-        font-weight: normal;[m
+[1;31m-        font-size: 16px;[m
+[1;31m-      }[m
+[1;31m-[m
+[1;31m-[m
+[1;31m-      #about h3 {[m
+[1;31m-        margin: 0;[m
+[1;31m-        margin-bottom: 10px;[m
+[1;31m-        font-size: 14px;[m
+[1;31m-      }[m
+[1;31m-[m
+[1;31m-      #about-content {[m
+[1;31m-        background-color: #ffd;[m
+[1;31m-        border: 1px solid #fc0;[m
+[1;31m-        margin-left: -55px;[m
+[1;31m-        margin-right: -10px;[m
+[1;31m-      }[m
+[1;31m-      #about-content table {[m
+[1;31m-        margin-top: 10px;[m
+[1;31m-        margin-bottom: 10px;[m
+[1;31m-        font-size: 11px;[m
+[1;31m-        border-collapse: collapse;[m
+[1;31m-      }[m
+[1;31m-      #about-content td {[m
+[1;31m-        padding: 10px;[m
+[1;31m-        padding-top: 3px;[m
+[1;31m-        padding-bottom: 3px;[m
+[1;31m-      }[m
+[1;31m-      #about-content td.name  {color: #555}[m
+[1;31m-      #about-content td.value {color: #000}[m
+[1;31m-[m
+[1;31m-      #about-content ul {[m
+[1;31m-        padding: 0;[m
+[1;31m-        list-style-type: none;[m
+[1;31m-      }[m
+[1;31m-[m
+[1;31m-      #about-content.failure {[m
+[1;31m-        background-color: #fcc;[m
+[1;31m-        border: 1px solid #f00;[m
+[1;31m-      }[m
+[1;31m-      #about-content.failure p {[m
+[1;31m-        margin: 0;[m
+[1;31m-        padding: 10px;[m
+[1;31m-      }[m
+[1;31m-[m
+[1;31m-[m
+[1;31m-      #getting-started {[m
+[1;31m-        border-top: 1px solid #ccc;[m
+[1;31m-        margin-top: 25px;[m
+[1;31m-        padding-top: 15px;[m
+[1;31m-      }[m
+[1;31m-      #getting-started h1 {[m
+[1;31m-        margin: 0;[m
+[1;31m-        font-size: 20px;[m
+[1;31m-      }[m
+[1;31m-      #getting-started h2 {[m
+[1;31m-        margin: 0;[m
+[1;31m-        font-size: 14px;[m
+[1;31m-        font-weight: normal;[m
+[1;31m-        color: #333;[m
+[1;31m-        margin-bottom: 25px;[m
+[1;31m-      }[m
+[1;31m-      #getting-started ol {[m
+[1;31m-        margin-left: 0;[m
+[1;31m-        padding-left: 0;[m
+[1;31m-      }[m
+[1;31m-      #getting-started li {[m
+[1;31m-        font-size: 18px;[m
+[1;31m-        color: #888;[m
+[1;31m-        margin-bottom: 25px;[m
+[1;31m-      }[m
+[1;31m-      #getting-started li h2 {[m
+[1;31m-        margin: 0;[m
+[1;31m-        font-weight: normal;[m
+[1;31m-        font-size: 18px;[m
+[1;31m-        color: #333;[m
+[1;31m-      }[m
+[1;31m-      #getting-started li p {[m
+[1;31m-        color: #555;[m
+[1;31m-        font-size: 13px;[m
+[1;31m-      }[m
+[1;31m-[m
+[1;31m-[m
+[1;31m-      #sidebar ul {[m
+[1;31m-        margin-left: 0;[m
+[1;31m-        padding-left: 0;[m
+[1;31m-      }[m
+[1;31m-      #sidebar ul h3 {[m
+[1;31m-        margin-top: 25px;[m
+[1;31m-        font-size: 16px;[m
+[1;31m-        padding-bottom: 10px;[m
+[1;31m-        border-bottom: 1px solid #ccc;[m
+[1;31m-      }[m
+[1;31m-      #sidebar li {[m
+[1;31m-        list-style-type: none;[m
+[1;31m-      }[m
+[1;31m-      #sidebar ul.links li {[m
+[1;31m-        margin-bottom: 5px;[m
+[1;31m-      }[m
+[1;31m-[m
+[1;31m-      .filename {[m
+[1;31m-        font-style: italic;[m
+[1;31m-      }[m
+[1;31m-    </style>[m
+[1;31m-    <script type="text/javascript">[m
+[1;31m-      function about() {[m
+[1;31m-        info = document.getElementById('about-content');[m
+[1;31m-        if (window.XMLHttpRequest)[m
+[1;31m-          { xhr = new XMLHttpRequest(); }[m
+[1;31m-        else[m
+[1;31m-          { xhr = new ActiveXObject("Microsoft.XMLHTTP"); }[m
+[1;31m-        xhr.open("GET","rails/info/properties",false);[m
+[1;31m-        xhr.send("");[m
+[1;31m-        info.innerHTML = xhr.responseText;[m
+[1;31m-        info.style.display = 'block'[m
+[1;31m-      }[m
+[1;31m-    </script>[m
+[1;31m-  </head>[m
+[1;31m-  <body>[m
+[1;31m-    <div id="page">[m
+[1;31m-      <div id="sidebar">[m
+[1;31m-        <ul id="sidebar-items">[m
+[1;31m-          <li>[m
+[1;31m-            <h3>Browse the documentation</h3>[m
+[1;31m-            <ul class="links">[m
+[1;31m-              <li><a href="http://guides.rubyonrails.org/">Rails Guides</a></li>[m
+[1;31m-              <li><a href="http://api.rubyonrails.org/">Rails API</a></li>[m
+[1;31m-              <li><a href="http://www.ruby-doc.org/core/">Ruby core</a></li>[m
+[1;31m-              <li><a href="http://www.ruby-doc.org/stdlib/">Ruby standard library</a></li>[m
+[1;31m-            </ul>[m
+[1;31m-          </li>[m
+[1;31m-        </ul>[m
+[1;31m-      </div>[m
+[1;31m-[m
+[1;31m-      <div id="content">[m
+[1;31m-        <div id="header">[m
+[1;31m-          <h1>Welcome aboard</h1>[m
+[1;31m-          <h2>You&rsquo;re riding Ruby on Rails!</h2>[m
+[1;31m-        </div>[m
+[1;31m-[m
+[1;31m-        <div id="about">[m
+[1;31m-          <h3><a href="rails/info/properties" onclick="about(); return false">About your application&rsquo;s environment</a></h3>[m
+[1;31m-          <div id="about-content" style="display: none"></div>[m
+[1;31m-        </div>[m
+[1;31m-[m
+[1;31m-        <div id="getting-started">[m
+[1;31m-          <h1>Getting started</h1>[m
+[1;31m-          <h2>Here&rsquo;s how to get rolling:</h2>[m
+[1;31m-[m
+[1;31m-          <ol>[m
+[1;31m-            <li>[m
+[1;31m-              <h2>Use <code>rails generate</code> to create your models and controllers</h2>[m
+[1;31m-              <p>To see all available options, run it without parameters.</p>[m
+[1;31m-            </li>[m
+[1;31m-[m
+[1;31m-            <li>[m
+[1;31m-              <h2>Set up a default route and remove <span class="filename">public/index.html</span></h2>[m
+[1;31m-              <p>Routes are set up in <span class="filename">config/routes.rb</span>.</p>[m
+[1;31m-            </li>[m
+[1;31m-[m
+[1;31m-            <li>[m
+[1;31m-              <h2>Create your database</h2>[m
+[1;31m-              <p>Run <code>rake db:create</code> to create your database. If you're not using SQLite (the default), edit <span class="filename">config/database.yml</span> with your username and password.</p>[m
+[1;31m-            </li>[m
+[1;31m-          </ol>[m
+[1;31m-        </div>[m
+[1;31m-      </div>[m
+[1;31m-[m
+[1;31m-      <div id="footer">&nbsp;</div>[m
+[1;31m-    </div>[m
+[1;31m-  </body>[m
+[1;31m-</html>[m
